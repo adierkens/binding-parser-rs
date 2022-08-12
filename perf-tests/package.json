@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@player-ui/binding-grammar": "^0.1.0"
+  }
+}

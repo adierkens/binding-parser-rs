@@ -279,7 +279,7 @@ impl ParsingState {
     fn new(binding: &str) -> ParsingState {
         ParsingState {
             binding: binding.to_string(),
-            current_index: 1,
+            current_index: 0,
             current_char: binding.chars().nth(0),
         }
     }
@@ -431,8 +431,6 @@ impl ParsingState {
                 SOME_DOUBLE_QUOTE
             })?;
 
-            lazy_static! {}
-
             let ID_REGEX: Regex = Regex::new(r#"[^'"]+"#).unwrap();
             let id = self.regex(ID_REGEX)?;
 
@@ -442,7 +440,9 @@ impl ParsingState {
                 SOME_DOUBLE_QUOTE
             })?;
 
-            return Ok(Some(AnyNode::from(id.unwrap())));
+            if id.is_some() {
+                return Ok(Some(AnyNode::from(id.unwrap())));
+            }
         }
 
         Ok(None)
@@ -517,14 +517,14 @@ impl ParsingState {
 
         while next_segment.is_some() {
             let mut unwrapped = next_segment.unwrap();
-
+            let is_unwrapped_empty = unwrapped.len() == 0;
             parts.append(&mut unwrapped);
 
             if self.current_char.is_none() || self.current_char == SOME_CLOSE_CURL {
                 break;
             }
 
-            if unwrapped.len() == 0 && self.current_char.is_some() {
+            if is_unwrapped_empty && self.current_char.is_some() {
                 return Err(Error::new(
                     ErrorKind::InvalidData,
                     format!("Unexpected character: '{}'", self.current_char.unwrap()),
@@ -547,5 +547,41 @@ pub fn parse_binding(raw_binding: &str) -> Result<Vec<AnyNode>, String> {
     match result {
         Ok(path) => Ok(path.path),
         Err(e) => Err(e.to_string()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use crate::*;
+
+    #[test]
+    fn parses_basic_identifier() {
+        let mut parsing_state = ParsingState::new("foo.bar");
+        let result = parsing_state.identifier().unwrap().unwrap();
+
+        assert_eq!(result, ValueNode::from("foo"));
+    }
+
+    #[test]
+    fn parses_basic_segment() {
+        let mut parsing_state = ParsingState::new("foo.bar");
+        let result = parsing_state.segment().unwrap().unwrap();
+
+        assert_eq!(result, AnyNode::from(ValueNode::from("foo")));
+    }
+
+    #[test]
+    fn parses_basic_path() {
+        let mut parsing_state = ParsingState::new("foo.bar");
+        let result = parsing_state.parse_path().unwrap();
+
+        assert_eq!(
+            result,
+            PathNode::from(vec![
+                AnyNode::from(ValueNode::from("foo")),
+                AnyNode::from(ValueNode::from("bar"))
+            ])
+        );
     }
 }
