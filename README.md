@@ -2,6 +2,8 @@
 
 An experiment to see what potential performance impacts there are for writing [this](https://github.com/player-ui/player/blob/main/core/binding-grammar/src/custom/index.ts) binding parser in rust -> wasm
 
+This is a pretty much a 1:1 port w/o any optimizations in place.
+
 Benchmark in node (i9-12900k, 64GB ram)
 
 ```
